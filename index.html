@@ -88,7 +88,8 @@
 
     textarea,
     input[type="number"],
-    input[type="color"] {
+    input[type="color"],
+    select {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 6px;
@@ -96,6 +97,40 @@
       font: inherit;
       color: inherit;
       background: #fff;
+    }
+
+    details {
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    #indentList {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .indent-line {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .symbol-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
     }
 
     textarea {
@@ -229,6 +264,11 @@
         <textarea id="text">Taylor Swift</textarea>
       </div>
 
+      <details id="indentCard">
+        <summary>行缩进</summary>
+        <div id="indentList"></div>
+      </details>
+
       <div class="field spacing-row">
         <div>
           <label for="letterGap">字母间隔</label>
@@ -266,8 +306,44 @@
         <div class="case-options">
           <label><input type="radio" name="style" value="classic" checked>经典</label>
           <label><input type="radio" name="style" value="bold">粗体</label>
-          <label><input type="radio" name="style" value="italic">斜体</label>
-          <label><input type="radio" name="style" value="bolditalic">粗斜体</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field-label">包边</span>
+        <div class="case-options">
+          <label><input type="radio" name="borderMode" value="none" checked>无</label>
+          <label><input type="radio" name="borderMode" value="outline">仅包边</label>
+          <label><input type="radio" name="borderMode" value="line">一行长方体</label>
+          <label><input type="radio" name="borderMode" value="block">完全长方体</label>
+        </div>
+      </div>
+
+      <div class="field spacing-row">
+        <div>
+          <label for="strokeWidth">描边宽度</label>
+          <input id="strokeWidth" type="number" min="1" max="5" value="1">
+        </div>
+        <div>
+          <label for="borderColor">描边颜色</label>
+          <input id="borderColor" type="color" value="#999999">
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field-label">插入符号</span>
+        <div class="symbol-row">
+          <select id="symbolType">
+            <option value="star">星</option>
+            <option value="moon">月</option>
+            <option value="heart">心</option>
+          </select>
+          <select id="symbolSize">
+            <option value="S">小</option>
+            <option value="M">中</option>
+            <option value="L">大</option>
+          </select>
+          <button id="insertSymbol" type="button">插入</button>
         </div>
       </div>
 
@@ -298,26 +374,201 @@
     const MARGIN = 5;
     const board = document.getElementById("board");
     const ctx = board.getContext("2d");
+    const SYMBOLS = {};
 
     function num(id) {
       const value = parseInt(document.getElementById(id).value, 10);
       return Number.isFinite(value) && value >= 0 ? value : 0;
     }
 
-    function keysForLine(line, mode) {
-      const words = line.trim().split(/\s+/).filter((word) => /[a-z]/i.test(word));
-      const lineFirstDone = { done: false };
-      const result = [];
+    function trimPattern(pattern) {
+      const rows = [];
+      for (let r = 0; r < pattern.length; r++) {
+        if (pattern[r].some(Boolean)) rows.push(r);
+      }
+      if (!rows.length) return [[0]];
+      const rmin = Math.min(...rows);
+      const rmax = Math.max(...rows);
+      const cols = [];
+      for (let c = 0; c < pattern[0].length; c++) {
+        if (pattern.some((row) => row[c])) cols.push(c);
+      }
+      const cmin = Math.min(...cols);
+      const cmax = Math.max(...cols);
+      return pattern.slice(rmin, rmax + 1).map((row) => row.slice(cmin, cmax + 1));
+    }
 
-      for (const word of words) {
-        const keys = [];
-        let wordFirst = true;
-        for (const raw of word) {
-          const lower = raw.toLowerCase();
-          if (!ALPHABET.has(lower)) {
+    function pointInPolygon(x, y, polygon) {
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i][0];
+        const yi = polygon[i][1];
+        const xj = polygon[j][0];
+        const yj = polygon[j][1];
+        const intersect = ((yi > y) !== (yj > y)) &&
+          (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function makeStar(n) {
+      if (n === 5) {
+        return [
+          [0, 0, 1, 0, 0],
+          [0, 1, 1, 1, 0],
+          [1, 1, 1, 1, 1],
+          [0, 1, 1, 1, 0],
+          [0, 0, 1, 0, 0],
+        ];
+      }
+      if (n === 7) {
+        return [
+          [0, 0, 0, 1, 0, 0, 0],
+          [0, 0, 0, 1, 0, 0, 0],
+          [0, 0, 1, 1, 1, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [1, 1, 1, 1, 1, 1, 1],
+          [0, 0, 0, 1, 0, 0, 0],
+          [0, 0, 1, 0, 1, 0, 0],
+        ];
+      }
+      if (n === 9) {
+        return [
+          [0, 0, 0, 0, 1, 0, 0, 0, 0],
+          [0, 0, 0, 0, 1, 0, 0, 0, 0],
+          [0, 0, 0, 1, 1, 1, 0, 0, 0],
+          [0, 0, 0, 1, 1, 1, 0, 0, 0],
+          [0, 0, 1, 1, 1, 1, 1, 0, 0],
+          [0, 1, 1, 1, 1, 1, 1, 1, 0],
+          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+          [0, 0, 0, 1, 1, 1, 0, 0, 0],
+          [0, 0, 1, 0, 1, 0, 1, 0, 0],
+        ];
+      }
+      const cx = n / 2;
+      const cy = n / 2;
+      const polygon = [];
+      for (let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? n * 0.52 : n * 0.22;
+        const angle = -Math.PI / 2 + i * Math.PI / 5;
+        polygon.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]);
+      }
+      return Array.from({ length: n }, (_, y) =>
+        Array.from({ length: n }, (_, x) =>
+          pointInPolygon(x + 0.5, y + 0.5, polygon) ? 1 : 0
+        )
+      );
+    }
+
+    function makeHeart(n) {
+      if (n === 5) {
+        return [
+          [0, 1, 0, 1, 0],
+          [1, 1, 1, 1, 1],
+          [1, 1, 1, 1, 1],
+          [0, 1, 1, 1, 0],
+          [0, 0, 1, 0, 0],
+        ];
+      }
+      if (n === 7) {
+        return [
+          [0, 1, 1, 0, 1, 1, 0],
+          [1, 0, 1, 0, 1, 0, 1],
+          [1, 0, 1, 0, 1, 0, 1],
+          [1, 1, 1, 1, 1, 1, 1],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 0, 1, 1, 1, 0, 0],
+          [0, 0, 0, 1, 0, 0, 0],
+        ];
+      }
+      if (n === 9) {
+        return [
+          [0, 0, 1, 1, 0, 1, 1, 0, 0],
+          [0, 1, 0, 1, 0, 1, 0, 1, 0],
+          [1, 0, 1, 0, 0, 0, 1, 0, 1],
+          [1, 0, 1, 0, 0, 0, 1, 0, 1],
+          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+          [0, 1, 1, 1, 1, 1, 1, 1, 0],
+          [0, 0, 1, 1, 1, 1, 1, 0, 0],
+          [0, 0, 0, 1, 1, 1, 0, 0, 0],
+          [0, 0, 0, 0, 1, 0, 0, 0, 0],
+        ];
+      }
+      const c = (n - 1) / 2;
+      return Array.from({ length: n }, (_, y) =>
+        Array.from({ length: n }, (_, x) => {
+          const nx = (x - c) / (c + 0.5);
+          const ny = (y - c) / (c + 0.5);
+          const yy = -ny;
+          const value = Math.pow(nx * nx + yy * yy - 1, 3) - nx * nx * yy * yy * yy;
+          return value <= 0 ? 1 : 0;
+        })
+      );
+    }
+
+    function makeMoon(n) {
+      const c = (n - 1) / 2;
+      return Array.from({ length: n }, (_, y) =>
+        Array.from({ length: n }, (_, x) => {
+          const d1 = Math.hypot(x - c, y - c);
+          const d2 = Math.hypot(x - c + n * 0.18, y - c - n * 0.12);
+          return d1 <= c + 0.6 && d2 >= c * 0.78 ? 1 : 0;
+        })
+      );
+    }
+
+    function addSymbol(key, pattern) {
+      const trimmed = trimPattern(pattern);
+      SYMBOLS[key] = {
+        pattern: trimmed,
+        width: trimmed[0].length,
+        height: trimmed.length,
+        baseline: trimmed.length - 1,
+      };
+    }
+
+    function initSymbols() {
+      const punct = {
+        ".": [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 1, 0]],
+        ",": [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 1, 0], [1, 0, 0]],
+        "?": [[1, 1, 1], [0, 0, 1], [0, 1, 0], [0, 0, 0], [0, 1, 0]],
+        "!": [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 0, 0], [0, 1, 0]],
+        "'": [[0, 1, 0], [0, 1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+        "-": [[0, 0, 0], [0, 0, 0], [1, 1, 1], [0, 0, 0], [0, 0, 0]],
+        ":": [[0, 0, 0], [0, 1, 0], [0, 0, 0], [0, 1, 0], [0, 0, 0]],
+        ";": [[0, 0, 0], [0, 1, 0], [0, 0, 0], [0, 1, 0], [1, 0, 0]],
+        '"': [[1, 0, 1], [1, 0, 1], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+        "(": [[0, 1, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [0, 1, 0]],
+        ")": [[0, 1, 0], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 1, 0]],
+      };
+      for (const [key, pattern] of Object.entries(punct)) {
+        addSymbol(key, pattern);
+      }
+      for (const size of ["S", "M", "L"]) {
+        const n = size === "S" ? 5 : size === "M" ? 7 : 9;
+        addSymbol("star:" + size, makeStar(n));
+        addSymbol("moon:" + size, makeMoon(n));
+        addSymbol("heart:" + size, makeHeart(n));
+      }
+    }
+
+    function parseWord(word, mode, lineFirstDone) {
+      const items = [];
+      let wordFirstLetter = true;
+      let i = 0;
+      while (i < word.length) {
+        if (word[i] === "[") {
+          const match = word.slice(i).match(/^\[(星|月|心):([SML])\]/);
+          if (match) {
+            const type = match[1] === "星" ? "star" : match[1] === "月" ? "moon" : "heart";
+            items.push({ kind: "shape", key: type + ":" + match[2] });
+            i += match[0].length;
             continue;
           }
-
+        }
+        const lower = word[i].toLowerCase();
+        if (ALPHABET.has(lower)) {
           let target = lower;
           if (mode === "upper") {
             target = lower.toUpperCase();
@@ -326,17 +577,87 @@
           } else if (mode === "first") {
             target = lineFirstDone.done ? lower : lower.toUpperCase();
           } else if (mode === "title") {
-            target = wordFirst ? lower.toUpperCase() : lower;
+            target = wordFirstLetter ? lower.toUpperCase() : lower;
           }
-
-          keys.push(target);
-          wordFirst = false;
+          items.push({ kind: "letter", key: target });
+          wordFirstLetter = false;
           lineFirstDone.done = true;
+        } else if (SYMBOLS[word[i]]) {
+          items.push({ kind: "shape", key: word[i] });
         }
-        if (keys.length) {
-          result.push(keys);
+        i++;
+      }
+      return items;
+    }
+
+    function keysForLine(line, mode) {
+      const words = line.trim().split(/\s+/).filter((word) => word.length);
+      const lineFirstDone = { done: false };
+      return words
+        .map((word) => parseWord(word, mode, lineFirstDone))
+        .filter((items) => items.length);
+    }
+
+    function templateFor(item) {
+      return item.kind === "letter" ? DATA[item.key] : SYMBOLS[item.key];
+    }
+
+    function getIndentValues() {
+      const values = [];
+      document.querySelectorAll("#indentList input").forEach((input) => {
+        values[parseInt(input.dataset.line, 10)] = parseInt(input.value, 10) || 0;
+      });
+      return values;
+    }
+
+    function applyBorder(grid, lineRanges, mode, stroke) {
+      if (mode === "none" || stroke <= 0) return grid;
+      const rows = grid.length;
+      const cols = grid[0].length;
+      const expRows = rows + stroke * 2;
+      const expCols = cols + stroke * 2;
+      const out = Array.from({ length: expRows }, () => new Array(expCols).fill(0));
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (grid[r][c] === 1) out[r + stroke][c + stroke] = 1;
         }
       }
+
+      const fill = (r0, r1, c0, c1) => {
+        for (let r = r0; r <= r1; r++) {
+          for (let c = c0; c <= c1; c++) {
+            if (out[r][c] === 0) out[r][c] = 2;
+          }
+        }
+      };
+
+      if (mode === "block") {
+        fill(0, expRows - 1, 0, expCols - 1);
+      } else {
+        for (const range of lineRanges) {
+          const c1 = mode === "line" ? cols - 1 : range.width - 1;
+          fill(
+            range.startRow,
+            range.endRow + stroke * 2,
+            0,
+            c1 + stroke * 2
+          );
+        }
+      }
+      return out;
+    }
+
+    function addMargin(grid) {
+      const rows = grid.length;
+      const cols = grid[0].length;
+      const marginRow = new Array(cols + MARGIN * 2).fill(0);
+      const result = [];
+      for (let m = 0; m < MARGIN; m++) result.push(marginRow.slice());
+      for (const row of grid) {
+        result.push(new Array(MARGIN).fill(0).concat(row, new Array(MARGIN).fill(0)));
+      }
+      for (let m = 0; m < MARGIN; m++) result.push(marginRow.slice());
       return result;
     }
 
@@ -346,21 +667,24 @@
       const wordGap = num("wordGap");
       const rowGap = num("rowGap");
       const mode = document.querySelector('input[name="caseMode"]:checked').value;
+      const borderMode = document.querySelector('input[name="borderMode"]:checked').value;
+      const strokeWidth = num("strokeWidth");
+      const indents = getIndentValues();
 
       const lineBlocks = [];
+      const lineRanges = [];
       let maxCols = 0;
 
-      for (const rawLine of text.split(/\r?\n/)) {
+      text.split(/\r?\n/).forEach((rawLine, lineIndex) => {
         const words = keysForLine(rawLine, mode);
-        if (!words.length) {
-          continue;
-        }
+        if (!words.length) return;
 
         let above = 1;
         let below = 0;
         for (const keys of words) {
-          for (const key of keys) {
-            const t = DATA[key];
+          for (const item of keys) {
+            const t = templateFor(item);
+            if (!t) continue;
             above = Math.max(above, t.baseline + 1);
             below = Math.max(below, t.height - t.baseline - 1);
           }
@@ -370,27 +694,29 @@
         let width = 0;
         words.forEach((keys, wi) => {
           if (wi > 0) width += wordGap;
-          keys.forEach((key, ki) => {
+          keys.forEach((item, ki) => {
             if (ki > 0) width += letterGap;
-            width += DATA[key].width;
+            const t = templateFor(item);
+            width += t ? t.width : 0;
           });
         });
 
+        const indent = indents[lineIndex] || 0;
+        width += indent;
         const rows = Array.from({ length: lineHeight }, () => new Array(width).fill(0));
-        let x = 0;
+        let x = indent;
 
         words.forEach((keys, wi) => {
           if (wi > 0) x += wordGap;
-          keys.forEach((key, ki) => {
+          keys.forEach((item, ki) => {
             if (ki > 0) x += letterGap;
-            const t = DATA[key];
+            const t = templateFor(item);
+            if (!t) return;
             const baseRow = above - 1 - t.baseline;
             for (let pr = 0; pr < t.height; pr++) {
               const targetRow = baseRow + pr;
               for (let pc = 0; pc < t.width; pc++) {
-                if (t.pattern[pr][pc]) {
-                  rows[targetRow][x + pc] = 1;
-                }
+                if (t.pattern[pr][pc]) rows[targetRow][x + pc] = 1;
               }
             }
             x += t.width;
@@ -399,41 +725,29 @@
 
         lineBlocks.push(rows);
         maxCols = Math.max(maxCols, width);
-      }
+      });
 
       const grid = [];
       lineBlocks.forEach((rows, index) => {
         if (index > 0) {
-          for (let g = 0; g < rowGap; g++) {
-            grid.push(new Array(maxCols).fill(0));
-          }
+          for (let g = 0; g < rowGap; g++) grid.push(new Array(maxCols).fill(0));
         }
+        const startRow = grid.length;
         for (const row of rows) {
           const padded = new Array(maxCols).fill(0);
-          for (let c = 0; c < row.length; c++) {
-            padded[c] = row[c];
-          }
+          for (let c = 0; c < row.length; c++) padded[c] = row[c];
           grid.push(padded);
         }
+        lineRanges.push({
+          startRow,
+          endRow: grid.length - 1,
+          width: rows[0].length,
+        });
       });
 
-      if (grid.length) {
-        const marginRow = new Array(maxCols + MARGIN * 2).fill(0);
-        const sideMargin = new Array(MARGIN).fill(0);
-        const withMargin = [];
-        for (let m = 0; m < MARGIN; m++) {
-          withMargin.push(marginRow.slice());
-        }
-        for (const row of grid) {
-          withMargin.push(sideMargin.concat(row, sideMargin));
-        }
-        for (let m = 0; m < MARGIN; m++) {
-          withMargin.push(marginRow.slice());
-        }
-        return withMargin;
-      }
-
-      return grid;
+      if (!grid.length) return grid;
+      const bordered = applyBorder(grid, lineRanges, borderMode, strokeWidth);
+      return addMargin(bordered);
     }
 
     function drawGridLines(cols, rows, cell) {
@@ -471,6 +785,7 @@
     function render() {
       const grid = compose();
       const color = document.getElementById("beadColor").value;
+      const borderColor = document.getElementById("borderColor").value;
       const cols = grid.length ? grid[0].length : 0;
       const rows = grid.length;
       const cell = 26;
@@ -480,18 +795,25 @@
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, board.width, board.height);
 
-      ctx.fillStyle = color;
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          if (grid[r][c]) {
+          if (grid[r][c] === 2) {
+            ctx.fillStyle = borderColor;
             ctx.fillRect(c * cell, r * cell, cell, cell);
           }
         }
       }
 
-      if (cols && rows) {
-        drawGridLines(cols, rows, cell);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (grid[r][c] === 1) {
+            ctx.fillStyle = color;
+            ctx.fillRect(c * cell, r * cell, cell, cell);
+          }
+        }
       }
+
+      if (cols && rows) drawGridLines(cols, rows, cell);
 
       document.getElementById("info").textContent = cols && rows
         ? cols + " x " + rows + " 格"
@@ -515,9 +837,7 @@
     }
 
     function download(format) {
-      if (!board.width) {
-        return;
-      }
+      if (!board.width) return;
       const params = imageParams(format);
       if (typeof board.toBlob === "function") {
         board.toBlob((blob) => {
@@ -535,9 +855,7 @@
     }
 
     function showImage(format) {
-      if (!board.width) {
-        return;
-      }
+      if (!board.width) return;
       const params = imageParams(format);
       const img = document.getElementById("imagePreview");
       img.src = board.toDataURL(params.mime, params.quality);
@@ -545,10 +863,58 @@
       img.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
+    function insertSymbol() {
+      const type = document.getElementById("symbolType").value;
+      const size = document.getElementById("symbolSize").value;
+      const label = type === "star" ? "星" : type === "moon" ? "月" : "心";
+      const token = "[" + label + ":" + size + "]";
+      const textarea = document.getElementById("text");
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      textarea.value = textarea.value.slice(0, start) + token + textarea.value.slice(end);
+      textarea.selectionStart = textarea.selectionEnd = start + token.length;
+      updateIndentList();
+      render();
+      textarea.focus();
+    }
+
+    function updateIndentList() {
+      const lines = document.getElementById("text").value.split(/\r?\n/);
+      const oldValues = [];
+      document.querySelectorAll("#indentList input").forEach((input) => {
+        oldValues[parseInt(input.dataset.line, 10)] = parseInt(input.value, 10) || 0;
+      });
+      const list = document.getElementById("indentList");
+      list.innerHTML = "";
+      lines.forEach((_, i) => {
+        const div = document.createElement("div");
+        div.className = "indent-line";
+        const label = document.createElement("span");
+        label.textContent = "第 " + (i + 1) + " 行";
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.max = "50";
+        input.value = oldValues[i] || 0;
+        input.dataset.line = String(i);
+        input.addEventListener("input", render);
+        div.appendChild(label);
+        div.appendChild(input);
+        list.appendChild(div);
+      });
+    }
+
+    initSymbols();
+
     document.getElementById("generate").addEventListener("click", render);
     document.getElementById("downloadJpg").addEventListener("click", () => download("jpg"));
     document.getElementById("downloadPng").addEventListener("click", () => download("png"));
     document.getElementById("openImage").addEventListener("click", () => showImage("png"));
+    document.getElementById("insertSymbol").addEventListener("click", insertSymbol);
+    document.getElementById("text").addEventListener("input", () => {
+      updateIndentList();
+      render();
+    });
 
     document.querySelectorAll('input[name="style"]').forEach((el) => {
       el.addEventListener("change", () => {
@@ -561,6 +927,7 @@
       el.addEventListener("change", render);
     });
 
+    updateIndentList();
     render();
   </script>
 </body>

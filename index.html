@@ -302,14 +302,6 @@
       </div>
 
       <div class="field">
-        <span class="field-label">字母样式</span>
-        <div class="case-options">
-          <label><input type="radio" name="style" value="classic" checked>经典</label>
-          <label><input type="radio" name="style" value="bold">粗体</label>
-        </div>
-      </div>
-
-      <div class="field">
         <span class="field-label">包边</span>
         <div class="case-options">
           <label><input type="radio" name="borderMode" value="none" checked>无</label>
@@ -327,23 +319,6 @@
         <div>
           <label for="borderColor">描边颜色</label>
           <input id="borderColor" type="color" value="#999999">
-        </div>
-      </div>
-
-      <div class="field">
-        <span class="field-label">插入符号</span>
-        <div class="symbol-row">
-          <select id="symbolType">
-            <option value="star">星</option>
-            <option value="moon">月</option>
-            <option value="heart">心</option>
-          </select>
-          <select id="symbolSize">
-            <option value="S">小</option>
-            <option value="M">中</option>
-            <option value="L">大</option>
-          </select>
-          <button id="insertSymbol" type="button">插入</button>
         </div>
       </div>
 
@@ -368,8 +343,7 @@
 
   <script src="letters.js"></script>
   <script>
-    const STYLES = window.LETTERS.styles;
-    let DATA = STYLES.classic;
+    const DATA = window.LETTERS.letters;
     const ALPHABET = new Set("abcdefghijklmnopqrstuvwxyz");
     const MARGIN = 5;
     const board = document.getElementById("board");
@@ -396,126 +370,6 @@
       const cmin = Math.min(...cols);
       const cmax = Math.max(...cols);
       return pattern.slice(rmin, rmax + 1).map((row) => row.slice(cmin, cmax + 1));
-    }
-
-    function pointInPolygon(x, y, polygon) {
-      let inside = false;
-      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const xi = polygon[i][0];
-        const yi = polygon[i][1];
-        const xj = polygon[j][0];
-        const yj = polygon[j][1];
-        const intersect = ((yi > y) !== (yj > y)) &&
-          (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-      }
-      return inside;
-    }
-
-    function makeStar(n) {
-      if (n === 5) {
-        return [
-          [0, 0, 1, 0, 0],
-          [0, 1, 1, 1, 0],
-          [1, 1, 1, 1, 1],
-          [0, 1, 1, 1, 0],
-          [0, 0, 1, 0, 0],
-        ];
-      }
-      if (n === 7) {
-        return [
-          [0, 0, 0, 1, 0, 0, 0],
-          [0, 0, 0, 1, 0, 0, 0],
-          [0, 0, 1, 1, 1, 0, 0],
-          [0, 1, 1, 1, 1, 1, 0],
-          [1, 1, 1, 1, 1, 1, 1],
-          [0, 0, 0, 1, 0, 0, 0],
-          [0, 0, 1, 0, 1, 0, 0],
-        ];
-      }
-      if (n === 9) {
-        return [
-          [0, 0, 0, 0, 1, 0, 0, 0, 0],
-          [0, 0, 0, 0, 1, 0, 0, 0, 0],
-          [0, 0, 0, 1, 1, 1, 0, 0, 0],
-          [0, 0, 0, 1, 1, 1, 0, 0, 0],
-          [0, 0, 1, 1, 1, 1, 1, 0, 0],
-          [0, 1, 1, 1, 1, 1, 1, 1, 0],
-          [1, 1, 1, 1, 1, 1, 1, 1, 1],
-          [0, 0, 0, 1, 1, 1, 0, 0, 0],
-          [0, 0, 1, 0, 1, 0, 1, 0, 0],
-        ];
-      }
-      const cx = n / 2;
-      const cy = n / 2;
-      const polygon = [];
-      for (let i = 0; i < 10; i++) {
-        const radius = i % 2 === 0 ? n * 0.52 : n * 0.22;
-        const angle = -Math.PI / 2 + i * Math.PI / 5;
-        polygon.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]);
-      }
-      return Array.from({ length: n }, (_, y) =>
-        Array.from({ length: n }, (_, x) =>
-          pointInPolygon(x + 0.5, y + 0.5, polygon) ? 1 : 0
-        )
-      );
-    }
-
-    function makeHeart(n) {
-      if (n === 5) {
-        return [
-          [0, 1, 0, 1, 0],
-          [1, 1, 1, 1, 1],
-          [1, 1, 1, 1, 1],
-          [0, 1, 1, 1, 0],
-          [0, 0, 1, 0, 0],
-        ];
-      }
-      if (n === 7) {
-        return [
-          [0, 1, 1, 0, 1, 1, 0],
-          [1, 0, 1, 0, 1, 0, 1],
-          [1, 0, 1, 0, 1, 0, 1],
-          [1, 1, 1, 1, 1, 1, 1],
-          [0, 1, 1, 1, 1, 1, 0],
-          [0, 0, 1, 1, 1, 0, 0],
-          [0, 0, 0, 1, 0, 0, 0],
-        ];
-      }
-      if (n === 9) {
-        return [
-          [0, 0, 1, 1, 0, 1, 1, 0, 0],
-          [0, 1, 0, 1, 0, 1, 0, 1, 0],
-          [1, 0, 1, 0, 0, 0, 1, 0, 1],
-          [1, 0, 1, 0, 0, 0, 1, 0, 1],
-          [1, 1, 1, 1, 1, 1, 1, 1, 1],
-          [0, 1, 1, 1, 1, 1, 1, 1, 0],
-          [0, 0, 1, 1, 1, 1, 1, 0, 0],
-          [0, 0, 0, 1, 1, 1, 0, 0, 0],
-          [0, 0, 0, 0, 1, 0, 0, 0, 0],
-        ];
-      }
-      const c = (n - 1) / 2;
-      return Array.from({ length: n }, (_, y) =>
-        Array.from({ length: n }, (_, x) => {
-          const nx = (x - c) / (c + 0.5);
-          const ny = (y - c) / (c + 0.5);
-          const yy = -ny;
-          const value = Math.pow(nx * nx + yy * yy - 1, 3) - nx * nx * yy * yy * yy;
-          return value <= 0 ? 1 : 0;
-        })
-      );
-    }
-
-    function makeMoon(n) {
-      const c = (n - 1) / 2;
-      return Array.from({ length: n }, (_, y) =>
-        Array.from({ length: n }, (_, x) => {
-          const d1 = Math.hypot(x - c, y - c);
-          const d2 = Math.hypot(x - c + n * 0.18, y - c - n * 0.12);
-          return d1 <= c + 0.6 && d2 >= c * 0.78 ? 1 : 0;
-        })
-      );
     }
 
     function addSymbol(key, pattern) {
@@ -545,12 +399,6 @@
       for (const [key, pattern] of Object.entries(punct)) {
         addSymbol(key, pattern);
       }
-      for (const size of ["S", "M", "L"]) {
-        const n = size === "S" ? 5 : size === "M" ? 7 : 9;
-        addSymbol("star:" + size, makeStar(n));
-        addSymbol("moon:" + size, makeMoon(n));
-        addSymbol("heart:" + size, makeHeart(n));
-      }
     }
 
     function parseWord(word, mode, lineFirstDone) {
@@ -558,15 +406,6 @@
       let wordFirstLetter = true;
       let i = 0;
       while (i < word.length) {
-        if (word[i] === "[") {
-          const match = word.slice(i).match(/^\[(星|月|心):([SML])\]/);
-          if (match) {
-            const type = match[1] === "星" ? "star" : match[1] === "月" ? "moon" : "heart";
-            items.push({ kind: "shape", key: type + ":" + match[2] });
-            i += match[0].length;
-            continue;
-          }
-        }
         const lower = word[i].toLowerCase();
         if (ALPHABET.has(lower)) {
           let target = lower;
@@ -614,35 +453,62 @@
       if (mode === "none" || stroke <= 0) return grid;
       const rows = grid.length;
       const cols = grid[0].length;
-      const expRows = rows + stroke * 2;
-      const expCols = cols + stroke * 2;
-      const out = Array.from({ length: expRows }, () => new Array(expCols).fill(0));
+      const mask = Array.from({ length: rows }, () => new Array(cols).fill(0));
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (grid[r][c] === 1) out[r + stroke][c + stroke] = 1;
-        }
-      }
-
-      const fill = (r0, r1, c0, c1) => {
-        for (let r = r0; r <= r1; r++) {
-          for (let c = c0; c <= c1; c++) {
-            if (out[r][c] === 0) out[r][c] = 2;
+      const fillRect = (r0, r1, c0, c1) => {
+        const rr0 = Math.max(0, r0);
+        const rr1 = Math.min(rows - 1, r1);
+        const cc0 = Math.max(0, c0);
+        const cc1 = Math.min(cols - 1, c1);
+        for (let r = rr0; r <= rr1; r++) {
+          for (let c = cc0; c <= cc1; c++) {
+            if (mask[r][c] === 0) mask[r][c] = 1;
           }
         }
       };
 
       if (mode === "block") {
-        fill(0, expRows - 1, 0, expCols - 1);
+        fillRect(0, rows - 1, 0, cols - 1);
+      } else if (mode === "line") {
+        for (const range of lineRanges) {
+          fillRect(range.startRow, range.endRow, range.startCol, cols - 1);
+        }
+        for (let i = 0; i < lineRanges.length - 1; i++) {
+          const a = lineRanges[i];
+          const b = lineRanges[i + 1];
+          const c0 = Math.max(a.startCol, b.startCol);
+          if (c0 <= cols - 1) fillRect(a.endRow + 1, b.startRow - 1, c0, cols - 1);
+        }
       } else {
         for (const range of lineRanges) {
-          const c1 = mode === "line" ? cols - 1 : range.width - 1;
-          fill(
-            range.startRow,
-            range.endRow + stroke * 2,
-            0,
-            c1 + stroke * 2
-          );
+          fillRect(range.startRow, range.endRow, range.startCol, range.endCol);
+        }
+        for (let i = 0; i < lineRanges.length - 1; i++) {
+          const a = lineRanges[i];
+          const b = lineRanges[i + 1];
+          const c0 = Math.max(a.startCol, b.startCol);
+          const c1 = Math.min(a.endCol, b.endCol);
+          if (c0 <= c1) fillRect(a.endRow + 1, b.startRow - 1, c0, c1);
+        }
+      }
+
+      const expRows = rows + stroke * 2;
+      const expCols = cols + stroke * 2;
+      const out = Array.from({ length: expRows }, () => new Array(expCols).fill(0));
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (!mask[r][c]) continue;
+          for (let dr = -stroke; dr <= stroke; dr++) {
+            for (let dc = -stroke; dc <= stroke; dc++) {
+              out[r + stroke + dr][c + stroke + dc] = 2;
+            }
+          }
+        }
+      }
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (grid[r][c] === 1) out[r + stroke][c + stroke] = 1;
         }
       }
       return out;
@@ -723,17 +589,17 @@
           });
         });
 
-        lineBlocks.push(rows);
+        lineBlocks.push({ rows, indent });
         maxCols = Math.max(maxCols, width);
       });
 
       const grid = [];
-      lineBlocks.forEach((rows, index) => {
+      lineBlocks.forEach((block, index) => {
         if (index > 0) {
           for (let g = 0; g < rowGap; g++) grid.push(new Array(maxCols).fill(0));
         }
         const startRow = grid.length;
-        for (const row of rows) {
+        for (const row of block.rows) {
           const padded = new Array(maxCols).fill(0);
           for (let c = 0; c < row.length; c++) padded[c] = row[c];
           grid.push(padded);
@@ -741,7 +607,9 @@
         lineRanges.push({
           startRow,
           endRow: grid.length - 1,
-          width: rows[0].length,
+          startCol: block.indent,
+          endCol: block.indent + block.rows[0].length - 1,
+          width: block.rows[0].length,
         });
       });
 
@@ -863,21 +731,6 @@
       img.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
-    function insertSymbol() {
-      const type = document.getElementById("symbolType").value;
-      const size = document.getElementById("symbolSize").value;
-      const label = type === "star" ? "星" : type === "moon" ? "月" : "心";
-      const token = "[" + label + ":" + size + "]";
-      const textarea = document.getElementById("text");
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      textarea.value = textarea.value.slice(0, start) + token + textarea.value.slice(end);
-      textarea.selectionStart = textarea.selectionEnd = start + token.length;
-      updateIndentList();
-      render();
-      textarea.focus();
-    }
-
     function updateIndentList() {
       const lines = document.getElementById("text").value.split(/\r?\n/);
       const oldValues = [];
@@ -910,16 +763,9 @@
     document.getElementById("downloadJpg").addEventListener("click", () => download("jpg"));
     document.getElementById("downloadPng").addEventListener("click", () => download("png"));
     document.getElementById("openImage").addEventListener("click", () => showImage("png"));
-    document.getElementById("insertSymbol").addEventListener("click", insertSymbol);
     document.getElementById("text").addEventListener("input", () => {
       updateIndentList();
       render();
-    });
-
-    document.querySelectorAll('input[name="style"]').forEach((el) => {
-      el.addEventListener("change", () => {
-        DATA = STYLES[document.querySelector('input[name="style"]:checked').value];
-      });
     });
 
     document.querySelectorAll("textarea, input, select").forEach((el) => {

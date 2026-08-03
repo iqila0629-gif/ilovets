@@ -152,104 +152,6 @@ def extract_letter(ws, region):
     }
 
 
-def trim_pattern(pattern, baseline):
-    rows = [r for r, row in enumerate(pattern) if any(row)]
-    cols = [c for c in range(len(pattern[0])) if any(pattern[r][c] for r in range(len(pattern)))]
-    if not rows or not cols:
-        return pattern, baseline
-    rmin, rmax = min(rows), max(rows)
-    cmin, cmax = min(cols), max(cols)
-    trimmed = [row[cmin:cmax + 1] for row in pattern[rmin:rmax + 1]]
-    return trimmed, baseline - rmin
-
-
-def bold_pattern(pattern):
-    h = len(pattern)
-    w = len(pattern[0])
-    result = [[0] * w for _ in range(h)]
-    for r in range(h):
-        for c in range(w):
-            if not pattern[r][c]:
-                continue
-            result[r][c] = 1
-            if c > 0:
-                result[r][c - 1] = 1
-            if c < w - 1:
-                result[r][c + 1] = 1
-    return result
-
-
-def upscale_pattern(pattern, baseline, target_width, target_height, target_baseline):
-    h = len(pattern)
-    w = len(pattern[0])
-
-    def src_y(row):
-        if row <= target_baseline:
-            if target_baseline == 0:
-                return 0.0
-            return row * baseline / target_baseline
-        denom = target_height - 1 - target_baseline
-        if denom <= 0:
-            return h - 1.0
-        return baseline + (row - target_baseline) * (h - 1 - baseline) / denom
-
-    def src_x(col):
-        return col * (w - 1) / (target_width - 1)
-
-    result = []
-    for row in range(target_height):
-        src_row = src_y(row)
-        y0 = int(src_row)
-        y1 = min(y0 + 1, h - 1)
-        dy = src_row - y0
-        line = []
-        for col in range(target_width):
-            src_col = src_x(col)
-            x0 = int(src_col)
-            x1 = min(x0 + 1, w - 1)
-            dx = src_col - x0
-            value = (
-                pattern[y0][x0] * (1 - dx) + pattern[y0][x1] * dx
-            ) * (1 - dy) + (
-                pattern[y1][x0] * (1 - dx) + pattern[y1][x1] * dx
-            ) * dy
-            line.append(1 if value >= 0.45 else 0)
-        result.append(line)
-    return result
-
-
-def build_large_bold(letter, key):
-    pattern = letter["pattern"]
-    baseline = letter["baseline"]
-    height = letter["height"]
-    width = letter["width"]
-
-    target_width = max(3, min(9, int(width * 7 / 5 + 0.5)))
-    if key.isupper():
-        target_height = 9
-        target_baseline = 8
-    elif baseline < height - 1:
-        target_height = 9
-        target_baseline = 6
-    elif height >= 6:
-        target_height = 9
-        target_baseline = 8
-    else:
-        target_height = 7
-        target_baseline = 6
-
-    pattern = upscale_pattern(
-        pattern, baseline, target_width, target_height, target_baseline
-    )
-    pattern, baseline = trim_pattern(pattern, target_baseline)
-    return {
-        "pattern": pattern,
-        "width": len(pattern[0]),
-        "height": len(pattern),
-        "baseline": baseline,
-    }
-
-
 def main():
     wb = openpyxl.load_workbook(XLSX_PATH, data_only=True)
     ws = wb["Sheet1"]
@@ -268,7 +170,6 @@ def main():
 
     styles = {
         "classic": letters,
-        "bold": {key: build_large_bold(letter, key) for key, letter in letters.items()},
     }
     payload = {
         "letters": letters,

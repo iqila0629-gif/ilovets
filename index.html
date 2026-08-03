@@ -188,6 +188,14 @@
       image-rendering: pixelated;
     }
 
+    #imagePreview {
+      display: block;
+      max-width: 100%;
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+    }
+
     @media (max-width: 820px) {
       main {
         grid-template-columns: 1fr;
@@ -255,11 +263,13 @@
     <section class="preview">
       <div class="preview-top">
         <span id="info">等待生成</span>
+        <button id="openImage" type="button" title="在浏览器中打开图片，可长按保存">打开图片</button>
         <button id="downloadPng" type="button">下载 PNG</button>
       </div>
       <div class="canvas-wrap">
         <canvas id="board"></canvas>
       </div>
+      <img id="imagePreview" alt="拼豆图纸" hidden>
     </section>
   </main>
 
@@ -470,25 +480,57 @@
         : "等待生成";
     }
 
+    function triggerDownload(href, filename) {
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function imageParams(format) {
+      return format === "png"
+        ? { mime: "image/png", quality: undefined, filename: "pindou-pattern.png" }
+        : { mime: "image/jpeg", quality: 0.92, filename: "pindou-pattern.jpg" };
+    }
+
     function download(format) {
       if (!board.width) {
         return;
       }
-      const mime = format === "png" ? "image/png" : "image/jpeg";
-      const name = format === "png" ? "拼豆图纸.png" : "拼豆图纸.jpg";
-      board.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = name;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }, mime, 0.92);
+      const params = imageParams(format);
+      if (typeof board.toBlob === "function") {
+        board.toBlob((blob) => {
+          if (!blob) {
+            triggerDownload(board.toDataURL(params.mime, params.quality), params.filename);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          triggerDownload(url, params.filename);
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }, params.mime, params.quality);
+      } else {
+        triggerDownload(board.toDataURL(params.mime, params.quality), params.filename);
+      }
+    }
+
+    function showImage(format) {
+      if (!board.width) {
+        return;
+      }
+      const params = imageParams(format);
+      const img = document.getElementById("imagePreview");
+      img.src = board.toDataURL(params.mime, params.quality);
+      img.hidden = false;
+      img.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
     document.getElementById("generate").addEventListener("click", render);
     document.getElementById("downloadJpg").addEventListener("click", () => download("jpg"));
     document.getElementById("downloadPng").addEventListener("click", () => download("png"));
+    document.getElementById("openImage").addEventListener("click", () => showImage("png"));
 
     document.querySelectorAll("textarea, input, select").forEach((el) => {
       el.addEventListener("input", render);

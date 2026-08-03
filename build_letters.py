@@ -152,6 +152,65 @@ def extract_letter(ws, region):
     }
 
 
+def trim_pattern(pattern, baseline):
+    rows = [r for r, row in enumerate(pattern) if any(row)]
+    cols = [c for c in range(len(pattern[0])) if any(pattern[r][c] for r in range(len(pattern)))]
+    if not rows or not cols:
+        return pattern, baseline
+    rmin, rmax = min(rows), max(rows)
+    cmin, cmax = min(cols), max(cols)
+    trimmed = [row[cmin:cmax + 1] for row in pattern[rmin:rmax + 1]]
+    return trimmed, baseline - rmin
+
+
+def bold_pattern(pattern):
+    h = len(pattern)
+    w = len(pattern[0])
+    result = [[0] * w for _ in range(h)]
+    for r in range(h):
+        for c in range(w):
+            if not pattern[r][c]:
+                continue
+            result[r][c] = 1
+            if c > 0:
+                result[r][c - 1] = 1
+            if c < w - 1:
+                result[r][c + 1] = 1
+    return result
+
+
+def italic_pattern(pattern):
+    h = len(pattern)
+    w = len(pattern[0])
+    width = w + 2
+    result = [[0] * width for _ in range(h)]
+    for r in range(h):
+        shift = int((h - 1 - r) * 2 / max(1, h - 1))
+        for c in range(w):
+            if pattern[r][c]:
+                result[r][c + shift] = 1
+    return result
+
+
+def build_style(letter, style):
+    pattern = letter["pattern"]
+    baseline = letter["baseline"]
+    if style == "bold":
+        pattern = bold_pattern(pattern)
+    elif style == "italic":
+        pattern = italic_pattern(pattern)
+    elif style == "bolditalic":
+        pattern = bold_pattern(pattern)
+        pattern = italic_pattern(pattern)
+    pattern, baseline = trim_pattern(pattern, baseline)
+    return {
+        "pattern": pattern,
+        "width": len(pattern[0]),
+        "height": len(pattern),
+        "baseline": baseline,
+    }
+
+
 def main():
     wb = openpyxl.load_workbook(XLSX_PATH, data_only=True)
     ws = wb["Sheet1"]
@@ -168,8 +227,15 @@ def main():
             "baseline": override["baseline"],
         }
 
+    styles = {
+        "classic": letters,
+        "bold": {key: build_style(letter, "bold") for key, letter in letters.items()},
+        "italic": {key: build_style(letter, "italic") for key, letter in letters.items()},
+        "bolditalic": {key: build_style(letter, "bolditalic") for key, letter in letters.items()},
+    }
     payload = {
         "letters": letters,
+        "styles": styles,
         "generated_from": os.path.basename(XLSX_PATH),
     }
     with open(OUT_PATH, "w", encoding="utf-8") as fh:

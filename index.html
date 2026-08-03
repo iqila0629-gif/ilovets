@@ -79,6 +79,13 @@
       margin-bottom: 6px;
     }
 
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
     textarea,
     input[type="number"],
     input[type="color"] {
@@ -254,6 +261,16 @@
         </div>
       </div>
 
+      <div class="field">
+        <span class="field-label">字母样式</span>
+        <div class="case-options">
+          <label><input type="radio" name="style" value="classic" checked>经典</label>
+          <label><input type="radio" name="style" value="bold">粗体</label>
+          <label><input type="radio" name="style" value="italic">斜体</label>
+          <label><input type="radio" name="style" value="bolditalic">粗斜体</label>
+        </div>
+      </div>
+
       <div class="actions">
         <button class="primary" id="generate" type="button">生成</button>
         <button id="downloadJpg" type="button">下载 JPG</button>
@@ -275,7 +292,8 @@
 
   <script src="letters.js"></script>
   <script>
-    const DATA = window.LETTERS.letters;
+    const STYLES = window.LETTERS.styles;
+    let DATA = STYLES.classic;
     const ALPHABET = new Set("abcdefghijklmnopqrstuvwxyz");
     const MARGIN = 5;
     const board = document.getElementById("board");
@@ -531,6 +549,12 @@
     document.getElementById("downloadJpg").addEventListener("click", () => download("jpg"));
     document.getElementById("downloadPng").addEventListener("click", () => download("png"));
     document.getElementById("openImage").addEventListener("click", () => showImage("png"));
+
+    document.querySelectorAll('input[name="style"]').forEach((el) => {
+      el.addEventListener("change", () => {
+        DATA = STYLES[document.querySelector('input[name="style"]:checked').value];
+      });
+    });
 
     document.querySelectorAll("textarea, input, select").forEach((el) => {
       el.addEventListener("input", render);

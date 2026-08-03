@@ -9,6 +9,7 @@ import openpyxl
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 XLSX_PATH = os.path.join(BASE_DIR, "字母图纸.xlsx")
+NUM_XLSX_PATH = os.path.join(BASE_DIR, "数字图纸.xlsx")
 OUT_PATH = os.path.join(BASE_DIR, "letters.js")
 
 # (rmin, rmax, cmin, cmax, baseline_row)
@@ -69,6 +70,20 @@ UPPER_REGIONS = {
     "X": (43, 49, 88, 92, 49),
     "Y": (53, 59, 4, 8, 59),
     "Z": (53, 59, 11, 15, 59),
+}
+
+# (rmin, rmax, cmin, cmax, baseline_row)
+DIGIT_REGIONS = {
+    "1": (5, 11, 3, 7, 11),
+    "2": (5, 11, 9, 13, 11),
+    "3": (5, 11, 17, 21, 11),
+    "4": (5, 11, 24, 28, 11),
+    "5": (5, 11, 31, 35, 11),
+    "6": (15, 21, 3, 7, 21),
+    "7": (15, 21, 9, 13, 21),
+    "8": (15, 21, 17, 21, 21),
+    "9": (15, 21, 24, 28, 21),
+    "0": (15, 21, 31, 35, 21),
 }
 
 # Manual corrections supplied by the user. These win over the workbook extraction.
@@ -155,10 +170,14 @@ def extract_letter(ws, region):
 def main():
     wb = openpyxl.load_workbook(XLSX_PATH, data_only=True)
     ws = wb["Sheet1"]
+    num_wb = openpyxl.load_workbook(NUM_XLSX_PATH, data_only=True)
+    num_ws = num_wb["Sheet1"]
 
     letters = {}
     for key, region in list(LOWER_REGIONS.items()) + list(UPPER_REGIONS.items()):
         letters[key] = extract_letter(ws, region)
+    for key, region in DIGIT_REGIONS.items():
+        letters[key] = extract_letter(num_ws, region)
     for key, override in PATTERN_OVERRIDES.items():
         pattern = override["pattern"]
         letters[key] = {

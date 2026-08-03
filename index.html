@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>拼豆字母组合</title>
+  <style>
+    :root {
+      --line: #d6d6d6;
+      --muted: #6b7280;
+      --ink: #111827;
+      --bg: #f7f7f5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .controls {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      position: sticky;
+      top: 16px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    textarea,
+    input[type="number"],
+    input[type="color"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      font: inherit;
+      color: inherit;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .spacing-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .case-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .case-options label {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .case-options input {
+      margin-right: 6px;
+      accent-color: #111827;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: inherit;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: #9ca3af;
+    }
+
+    button.primary {
+      background: #111827;
+      border-color: #111827;
+      color: #fff;
+    }
+
+    button.primary:hover {
+      background: #1f2937;
+    }
+
+    .preview {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-height: 420px;
+      padding: 16px;
+    }
+
+    .preview-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .preview-top span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .canvas-wrap {
+      overflow: auto;
+      max-height: 78vh;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+    }
+
+    @media (max-width: 820px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>拼豆字母组合</h1>
+      <p>JPG 输出</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="controls" aria-label="设置">
+      <div class="field">
+        <label for="text">单词 / 句子</label>
+        <textarea id="text">Hello World</textarea>
+      </div>
+
+      <div class="field spacing-row">
+        <div>
+          <label for="letterGap">字母间隔</label>
+          <input id="letterGap" type="number" min="0" max="50" value="1">
+        </div>
+        <div>
+          <label for="wordGap">单词间隔</label>
+          <input id="wordGap" type="number" min="0" max="50" value="2">
+        </div>
+      </div>
+
+      <div class="field spacing-row">
+        <div>
+          <label for="rowGap">行间距</label>
+          <input id="rowGap" type="number" min="0" max="50" value="1">
+        </div>
+        <div>
+          <label for="beadColor">颜色</label>
+          <input id="beadColor" type="color" value="#000000">
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field-label">大小写</span>
+        <div class="case-options">
+          <label><input type="radio" name="caseMode" value="upper" checked>全部大写</label>
+          <label><input type="radio" name="caseMode" value="first">首词大写</label>
+          <label><input type="radio" name="caseMode" value="title">每词大写</label>
+          <label><input type="radio" name="caseMode" value="lower">全部小写</label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="generate" type="button">生成</button>
+        <button id="downloadJpg" type="button">下载 JPG</button>
+      </div>
+    </section>
+
+    <section class="preview">
+      <div class="preview-top">
+        <span id="info">等待生成</span>
+        <button id="downloadPng" type="button">下载 PNG</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="board"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="letters.js"></script>
+  <script>
+    const DATA = window.LETTERS.letters;
+    const ALPHABET = new Set("abcdefghijklmnopqrstuvwxyz");
+    const MARGIN = 5;
+    const board = document.getElementById("board");
+    const ctx = board.getContext("2d");
+
+    function num(id) {
+      const value = parseInt(document.getElementById(id).value, 10);
+      return Number.isFinite(value) && value >= 0 ? value : 0;
+    }
+
+    function keysForLine(line, mode) {
+      const words = line.trim().split(/\s+/).filter((word) => /[a-z]/i.test(word));
+      const lineFirstDone = { done: false };
+      const result = [];
+
+      for (const word of words) {
+        const keys = [];
+        let wordFirst = true;
+        for (const raw of word) {
+          const lower = raw.toLowerCase();
+          if (!ALPHABET.has(lower)) {
+            continue;
+          }
+
+          let target = lower;
+          if (mode === "upper") {
+            target = lower.toUpperCase();
+          } else if (mode === "lower") {
+            target = lower;
+          } else if (mode === "first") {
+            target = lineFirstDone.done ? lower : lower.toUpperCase();
+          } else if (mode === "title") {
+            target = wordFirst ? lower.toUpperCase() : lower;
+          }
+
+          keys.push(target);
+          wordFirst = false;
+          lineFirstDone.done = true;
+        }
+        if (keys.length) {
+          result.push(keys);
+        }
+      }
+      return result;
+    }
+
+    function compose() {
+      const text = document.getElementById("text").value;
+      const letterGap = num("letterGap");
+      const wordGap = num("wordGap");
+      const rowGap = num("rowGap");
+      const mode = document.querySelector('input[name="caseMode"]:checked').value;
+
+      const lineBlocks = [];
+      let maxCols = 0;
+
+      for (const rawLine of text.split(/\r?\n/)) {
+        const words = keysForLine(rawLine, mode);
+        if (!words.length) {
+          continue;
+        }
+
+        let above = 1;
+        let below = 0;
+        for (const keys of words) {
+          for (const key of keys) {
+            const t = DATA[key];
+            above = Math.max(above, t.baseline + 1);
+            below = Math.max(below, t.height - t.baseline - 1);
+          }
+        }
+
+        const lineHeight = above + below;
+        let width = 0;
+        words.forEach((keys, wi) => {
+          if (wi > 0) width += wordGap;
+          keys.forEach((key, ki) => {
+            if (ki > 0) width += letterGap;
+            width += DATA[key].width;
+          });
+        });
+
+        const rows = Array.from({ length: lineHeight }, () => new Array(width).fill(0));
+        let x = 0;
+
+        words.forEach((keys, wi) => {
+          if (wi > 0) x += wordGap;
+          keys.forEach((key, ki) => {
+            if (ki > 0) x += letterGap;
+            const t = DATA[key];
+            const baseRow = above - 1 - t.baseline;
+            for (let pr = 0; pr < t.height; pr++) {
+              const targetRow = baseRow + pr;
+              for (let pc = 0; pc < t.width; pc++) {
+                if (t.pattern[pr][pc]) {
+                  rows[targetRow][x + pc] = 1;
+                }
+              }
+            }
+            x += t.width;
+          });
+        });
+
+        lineBlocks.push(rows);
+        maxCols = Math.max(maxCols, width);
+      }
+
+      const grid = [];
+      lineBlocks.forEach((rows, index) => {
+        if (index > 0) {
+          for (let g = 0; g < rowGap; g++) {
+            grid.push(new Array(maxCols).fill(0));
+          }
+        }
+        for (const row of rows) {
+          const padded = new Array(maxCols).fill(0);
+          for (let c = 0; c < row.length; c++) {
+            padded[c] = row[c];
+          }
+          grid.push(padded);
+        }
+      });
+
+      if (grid.length) {
+        const marginRow = new Array(maxCols + MARGIN * 2).fill(0);
+        const sideMargin = new Array(MARGIN).fill(0);
+        const withMargin = [];
+        for (let m = 0; m < MARGIN; m++) {
+          withMargin.push(marginRow.slice());
+        }
+        for (const row of grid) {
+          withMargin.push(sideMargin.concat(row, sideMargin));
+        }
+        for (let m = 0; m < MARGIN; m++) {
+          withMargin.push(marginRow.slice());
+        }
+        return withMargin;
+      }
+
+      return grid;
+    }
+
+    function drawGridLines(cols, rows, cell) {
+      for (let i = 0; i <= cols; i++) {
+        const x = i * cell;
+        if (i % 5 === 0) {
+          ctx.strokeStyle = "#5f6368";
+          ctx.lineWidth = 3;
+        } else {
+          ctx.strokeStyle = "#c9c9c9";
+          ctx.lineWidth = 1;
+        }
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, rows * cell);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i <= rows; i++) {
+        const y = i * cell;
+        if (i % 5 === 0) {
+          ctx.strokeStyle = "#5f6368";
+          ctx.lineWidth = 3;
+        } else {
+          ctx.strokeStyle = "#c9c9c9";
+          ctx.lineWidth = 1;
+        }
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cols * cell, y);
+        ctx.stroke();
+      }
+    }
+
+    function render() {
+      const grid = compose();
+      const color = document.getElementById("beadColor").value;
+      const cols = grid.length ? grid[0].length : 0;
+      const rows = grid.length;
+      const cell = 26;
+
+      board.width = cols * cell;
+      board.height = rows * cell;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, board.width, board.height);
+
+      ctx.fillStyle = color;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (grid[r][c]) {
+            ctx.fillRect(c * cell, r * cell, cell, cell);
+          }
+        }
+      }
+
+      if (cols && rows) {
+        drawGridLines(cols, rows, cell);
+      }
+
+      document.getElementById("info").textContent = cols && rows
+        ? cols + " x " + rows + " 格"
+        : "等待生成";
+    }
+
+    function download(format) {
+      if (!board.width) {
+        return;
+      }
+      const mime = format === "png" ? "image/png" : "image/jpeg";
+      const name = format === "png" ? "拼豆图纸.png" : "拼豆图纸.jpg";
+      board.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }, mime, 0.92);
+    }
+
+    document.getElementById("generate").addEventListener("click", render);
+    document.getElementById("downloadJpg").addEventListener("click", () => download("jpg"));
+    document.getElementById("downloadPng").addEventListener("click", () => download("png"));
+
+    document.querySelectorAll("textarea, input, select").forEach((el) => {
+      el.addEventListener("input", render);
+      el.addEventListener("change", render);
+    });
+
+    render();
+  </script>
+</body>
+</html>

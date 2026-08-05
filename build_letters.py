@@ -146,8 +146,9 @@ PATTERN_OVERRIDES = {
         ],
     },
     "y": {
-        "baseline": 3,
+        "baseline": 4,
         "pattern": [
+            [1, 0, 0, 0, 1],
             [1, 0, 0, 0, 1],
             [1, 0, 0, 0, 1],
             [1, 0, 0, 1, 1],

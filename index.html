@@ -294,7 +294,8 @@
       <div class="field">
         <span class="field-label">大小写</span>
         <div class="case-options">
-          <label><input type="radio" name="caseMode" value="upper" checked>全部大写</label>
+          <label><input type="radio" name="caseMode" value="default" checked>默认</label>
+          <label><input type="radio" name="caseMode" value="upper">全部大写</label>
           <label><input type="radio" name="caseMode" value="first">首词大写</label>
           <label><input type="radio" name="caseMode" value="title">每词大写</label>
           <label><input type="radio" name="caseMode" value="lower">全部小写</label>
@@ -320,7 +321,7 @@
     </section>
   </main>
 
-  <script src="letters.js?v=20260804"></script>
+  <script src="letters.js?v=20260822"></script>
   <script>
     const DATA = window.LETTERS.letters;
     const ALPHABET = new Set("abcdefghijklmnopqrstuvwxyz");
@@ -389,7 +390,9 @@
         const lower = word[i].toLowerCase();
         if (ALPHABET.has(lower)) {
           let target = lower;
-          if (mode === "upper") {
+          if (mode === "default") {
+            target = word[i];
+          } else if (mode === "upper") {
             target = lower.toUpperCase();
           } else if (mode === "lower") {
             target = lower;

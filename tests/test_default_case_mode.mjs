@@ -36,6 +36,10 @@ async function run() {
   await page.waitForLoadState("networkidle");
 
   assert.equal(
+    await page.locator('input[name="letterStyle"][value="normal"]').isChecked(),
+    true,
+  );
+  assert.equal(
     await page.locator('input[name="caseMode"][value="default"]').isChecked(),
     true,
   );
@@ -56,8 +60,37 @@ async function run() {
     ["d", "o", "g"],
   ]);
 
+  assert.deepEqual(await page.evaluate(() => window.COMPACT_LETTERS.A.pattern), [
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+  ]);
+  assert.deepEqual(await page.evaluate(() => window.COMPACT_LETTERS.a.pattern), [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 1, 1],
+    [1, 0, 1],
+    [0, 1, 1],
+  ]);
+  assert.equal(await page.evaluate(() => Object.keys(window.COMPACT_LETTERS).length), 52);
+  assert.equal(
+    await page.evaluate(() => Object.values(window.COMPACT_LETTERS).every((letter) => (
+      letter.width === 3
+      && letter.height === 5
+      && letter.pattern.length === 5
+      && letter.pattern.every((row) => row.length === 3)
+    ))),
+    true,
+  );
+
+  await page.locator('input[name="letterStyle"][value="compact"]').check();
+  await page.locator("#text").fill("Aa");
+  assert.equal(await page.locator("#info").textContent(), "17 x 15 格");
+
   await browser.close();
-  console.log("default case mode tests passed");
+  console.log("letter style and case mode tests passed");
 }
 
 

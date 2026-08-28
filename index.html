@@ -292,6 +292,14 @@
       </div>
 
       <div class="field">
+        <span class="field-label">字母版本</span>
+        <div class="case-options">
+          <label><input type="radio" name="letterStyle" value="normal" checked>正常版</label>
+          <label><input type="radio" name="letterStyle" value="compact">缩小版</label>
+        </div>
+      </div>
+
+      <div class="field">
         <span class="field-label">大小写</span>
         <div class="case-options">
           <label><input type="radio" name="caseMode" value="default" checked>默认</label>
@@ -321,9 +329,15 @@
     </section>
   </main>
 
-  <script src="letters.js?v=20260822"></script>
+  <script src="letters.js?v=20260828"></script>
+  <script src="compact_letters.js?v=20260828"></script>
   <script>
-    const DATA = window.LETTERS.letters;
+    const NORMAL_DATA = window.LETTERS.letters;
+    const STYLE_DATA = {
+      normal: NORMAL_DATA,
+      compact: { ...NORMAL_DATA, ...window.COMPACT_LETTERS },
+    };
+    let DATA = STYLE_DATA.normal;
     const ALPHABET = new Set("abcdefghijklmnopqrstuvwxyz");
     const DIGITS = new Set("0123456789");
     const MARGIN = 5;
@@ -559,6 +573,8 @@
     }
 
     function render() {
+      const style = document.querySelector('input[name="letterStyle"]:checked').value;
+      DATA = STYLE_DATA[style];
       const grid = compose();
       const color = document.getElementById("beadColor").value;
       const cols = grid.length ? grid[0].length : 0;
